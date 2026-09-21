@@ -15,9 +15,9 @@ from mcp_youtube_transcript import server
 @click.command()
 @click.option(
     "--response-limit",
-    type=int,
-    help="Maximum number of characters each response contains. Set a negative value to disable pagination.",
-    default=50000,
+    type=click.IntRange(1024, 50000),
+    help="Maximum transcript content characters per page (1024–50000); pagination is always bounded.",
+    default=15000,
 )
 @click.option(
     "--webshare-proxy-username",

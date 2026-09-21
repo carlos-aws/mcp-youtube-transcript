@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatchling==1.32.4" ]
 
 [project]
 name = "mcp-youtube-transcript"
@@ -24,12 +24,12 @@ classifiers = [
 ]
 dependencies = [
     "humanize>=4.13",
-    "mcp>=2",
+    "mcp>=2.2,<3",
     "pydantic>=2.10.6",
     "requests>=2.32.3",
     "rich-click>=1.8.8",
     "youtube-transcript-api>=1.1",
-    "yt-dlp>=2025.9.26",
+    "yt-dlp>=2026.8.19",
 ]
 scripts.mcp-youtube-transcript = "mcp_youtube_transcript.cli:main"
 
@@ -42,6 +42,17 @@ dev = [
     "pytest-mock>=3.14",
     "pytest-recording>=0.13.4",
     "types-requests>=2.32.0.20250306",
+]
+
+[tool.uv]
+build-constraint-dependencies = [
+    "hatchling==1.32.4",
+    "packaging==26.3",
+    "pathspec==1.1.1",
+    "pluggy==1.6.0",
+    "tomli==2.4.1",
+    "tomlkit==0.15.1",
+    "trove-classifiers==2026.6.1.19",
 ]
 
 [tool.ruff]

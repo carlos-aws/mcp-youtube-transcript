@@ -6,6 +6,7 @@
 #
 #  http://opensource.org/licenses/mit-license.php
 import os
+import sys
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 
@@ -25,7 +26,7 @@ def fetch_video_info(video_id: str) -> VideoInfo:
     dlp.add_info_extractor(YoutubeIE())
     dlp_res = dlp.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
     upload_date, duration = _parse_time_info(
-        dlp_res["upload_date"], int(dlp_res["timestamp"] or 0), dlp_res["duration"] or 0
+        dlp_res.get("upload_date"), dlp_res.get("timestamp"), dlp_res.get("duration")
     )
     return VideoInfo(
         title=dlp_res["title"] or "",
@@ -33,12 +34,15 @@ def fetch_video_info(video_id: str) -> VideoInfo:
         uploader=dlp_res["uploader"] or "",
         upload_date=upload_date,
         duration=duration,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
     )
 
 
 @pytest.fixture(scope="module")
 async def mcp_client_session() -> AsyncGenerator[ClientSession, None]:
-    params = StdioServerParameters(command="uv", args=["run", "mcp-youtube-transcript", "--response-limit", "-1"])
+    params = StdioServerParameters(
+        command=sys.executable, args=["-m", "mcp_youtube_transcript", "--response-limit", "50000"]
+    )
     async with stdio_client(params) as streams, ClientSession(streams[0], streams[1]) as session:
         await session.initialize()
         yield session
@@ -46,7 +50,9 @@ async def mcp_client_session() -> AsyncGenerator[ClientSession, None]:
 
 @pytest.fixture(scope="module")
 async def mcp_client_session_with_response_limit() -> AsyncGenerator[ClientSession, None]:
-    params = StdioServerParameters(command="uv", args=["run", "mcp-youtube-transcript", "--response-limit", "3000"])
+    params = StdioServerParameters(
+        command=sys.executable, args=["-m", "mcp_youtube_transcript", "--response-limit", "3000"]
+    )
     async with stdio_client(params) as streams, ClientSession(streams[0], streams[1]) as session:
         await session.initialize()
         yield session
@@ -69,6 +75,7 @@ async def test_get_transcript(mcp_client_session: ClientSession) -> None:
 
     expect = Transcript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         transcript="\n".join(item.text for item in YouTubeTranscriptApi().fetch(video_id)),
     )
 
@@ -92,6 +99,7 @@ async def test_get_transcript_with_language(mcp_client_session: ClientSession) -
 
     expect = Transcript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         transcript="\n".join(item.text for item in YouTubeTranscriptApi().fetch(video_id, ["ja"])),
     )
 
@@ -117,6 +125,7 @@ async def test_get_transcript_fallback_language(
 
     expect = Transcript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         transcript="\n".join(item.text for item in YouTubeTranscriptApi().fetch(video_id)),
     )
 
@@ -124,7 +133,7 @@ async def test_get_transcript_fallback_language(
         "get_transcript",
         arguments={
             "url": f"https://www.youtube.com/watch?v={video_id}",
-            "lang": "unknown",
+            "lang": "zz",
         },
     )
     assert isinstance(res.content[0], TextContent)
@@ -160,6 +169,7 @@ async def test_get_transcript_with_short_url(mcp_client_session: ClientSession) 
 
     expect = Transcript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         transcript="\n".join(item.text for item in YouTubeTranscriptApi().fetch(video_id)),
     )
 
@@ -183,6 +193,7 @@ async def test_get_transcript_with_response_limit(mcp_client_session_with_respon
 
     expect = Transcript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         transcript="\n".join(item.text for item in YouTubeTranscriptApi().fetch(video_id)),
     )
 
@@ -197,13 +208,13 @@ async def test_get_transcript_with_response_limit(mcp_client_session_with_respon
         assert isinstance(res.content[0], TextContent)
 
         t = Transcript.model_validate_json(res.content[0].text)
-        transcript += t.transcript + "\n"
+        transcript += t.transcript
         if t.next_cursor is None:
             break
         cursor = t.next_cursor
 
     assert t.title == expect.title
-    assert transcript[:-1] == expect.transcript
+    assert transcript == expect.transcript
 
 
 @pytest.mark.skipif(os.getenv("CI") == "true", reason="Skipping this test on CI")
@@ -215,6 +226,7 @@ async def test_get_timed_transcript(mcp_client_session: ClientSession) -> None:
 
     expect = TimedTranscript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         snippets=[TranscriptSnippet.from_fetched_transcript_snippet(s) for s in YouTubeTranscriptApi().fetch(video_id)],
     )
 
@@ -238,6 +250,7 @@ async def test_get_timed_transcript_with_language(mcp_client_session: ClientSess
 
     expect = TimedTranscript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         snippets=[
             TranscriptSnippet.from_fetched_transcript_snippet(s) for s in YouTubeTranscriptApi().fetch(video_id, ["ja"])
         ],
@@ -265,6 +278,7 @@ async def test_get_timed_transcript_fallback_language(
 
     expect = TimedTranscript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         snippets=[TranscriptSnippet.from_fetched_transcript_snippet(s) for s in YouTubeTranscriptApi().fetch(video_id)],
     )
 
@@ -272,7 +286,7 @@ async def test_get_timed_transcript_fallback_language(
         "get_timed_transcript",
         arguments={
             "url": f"https://www.youtube.com/watch?v={video_id}",
-            "lang": "unknown",
+            "lang": "zz",
         },
     )
     assert isinstance(res.content[0], TextContent)
@@ -310,6 +324,7 @@ async def test_get_timed_transcript_with_short_url(mcp_client_session: ClientSes
 
     expect = TimedTranscript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         snippets=[TranscriptSnippet.from_fetched_transcript_snippet(s) for s in YouTubeTranscriptApi().fetch(video_id)],
     )
 
@@ -333,6 +348,7 @@ async def test_get_timed_transcript_with_response_limit(mcp_client_session_with_
 
     expect = TimedTranscript(
         title=fetch_video_info(video_id).title,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
         snippets=[TranscriptSnippet.from_fetched_transcript_snippet(s) for s in YouTubeTranscriptApi().fetch(video_id)],
     )
 
@@ -397,5 +413,5 @@ async def test_get_available_languages(mcp_client_session: ClientSession) -> Non
 
 def test_parse_time_info() -> None:
     upload_date, duration = _parse_time_info(20250921, 1650496000, 1234567)
-    assert upload_date == datetime(2025, 9, 21, 16, 50, 49, 600000, timezone.utc)
+    assert upload_date == datetime.fromtimestamp(1650496000, timezone.utc)
     assert duration == humanize.naturaldelta(timedelta(seconds=1234567))

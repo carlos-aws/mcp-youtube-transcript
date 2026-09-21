@@ -60,9 +60,9 @@
     "response_limit": {
       "type": "number",
       "title": "Maximum response character limit",
-      "description": "Maximum number of characters each response contains. Set a negative value to disable pagination.",
+      "description": "Maximum transcript content characters per page, between 1024 and 50000. Pagination is always bounded.",
       "required": false,
-      "default": 50000
+      "default": 15000
     },
     "webshare_proxy_username": {
       "type": "string",

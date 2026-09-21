@@ -57,32 +57,16 @@ async def test_new_server_with_webshare_proxy() -> None:
 async def test_new_server_with_only_webshare_proxy_user() -> None:
     webshare_proxy_username = "test_user"
 
-    mcp = server(
-        webshare_proxy_username=webshare_proxy_username,
-    )
-
-    app_ctx: AppContext
-    async with mcp.settings.lifespan(mcp) as app_ctx:  # type: ignore
-        assert app_ctx.http_client == app_ctx.ytt_api._fetcher._http_client
-        assert not app_ctx.http_client.proxies
-        assert not app_ctx.ytt_api._fetcher._proxy_config
-        assert not app_ctx.dlp.params.get("proxy")
+    with pytest.raises(ValueError, match="both"):
+        server(webshare_proxy_username=webshare_proxy_username)
 
 
 @pytest.mark.anyio
 async def test_new_server_with_only_webshare_proxy_password() -> None:
     webshare_proxy_password = "test_pass"
 
-    mcp = server(
-        webshare_proxy_password=webshare_proxy_password,
-    )
-
-    app_ctx: AppContext
-    async with mcp.settings.lifespan(mcp) as app_ctx:  # type: ignore
-        assert app_ctx.http_client == app_ctx.ytt_api._fetcher._http_client
-        assert not app_ctx.http_client.proxies
-        assert not app_ctx.ytt_api._fetcher._proxy_config
-        assert not app_ctx.dlp.params.get("proxy")
+    with pytest.raises(ValueError, match="both"):
+        server(webshare_proxy_password=webshare_proxy_password)
 
 
 @pytest.mark.anyio

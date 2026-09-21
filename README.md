@@ -93,8 +93,13 @@ A Docker image for this server is available on [Docker Hub](https://hub.docker.c
 Please refer to the Docker Hub page for detailed usage instructions and documentation.
 
 ## Response Pagination
+This local research fork always paginates between 1,024 and 50,000 content
+characters per page (15,000 by default). Plain transcript cursors count
+characters; concatenate pages directly. See [SECURITY.md](SECURITY.md) for
+the deployment, compatibility and security requirements.
+
 When retrieving transcripts for longer videos, the content may exceed the token size limits of the LLM.
-To avoid this issue, this server splits transcripts that exceed 50,000 characters.
+To avoid this issue, this fork splits transcripts at the configured content limit (15,000 characters by default).
 If a transcript is split, the response will include a `next_cursor`.
 To retrieve the next part, include this `next_cursor` value in your request.
 
